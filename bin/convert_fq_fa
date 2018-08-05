@@ -1,0 +1,74 @@
+#! /usr/bin/bash
+####################
+# convert_fq_fa
+#     Description:
+#         Used to convert fastq file to fasta file.
+#         Output fasta to stdout.
+#     Usage:
+#         convert_fq_fa [-h] -f in.fq > out.fa
+#     Parameters:
+#         h: print this help
+#         f: the input fastq files
+#     Input:
+#         the input file should be fastq files
+#     Output:
+#         the converted fasta output to stdout (1>)
+####################
+
+
+function printusage {
+    echo "Usage: $0 [-h] -f in.fq" 1>&2
+}
+
+function printhelp {
+    printusage
+    echo "" 1>&2
+    echo "Parameters:" 1>&2
+    echo "    h: print this help" 1>&2
+    echo "    f: the input fastq files" 1>&2
+    echo "" 1>&2
+    echo "Input:" 1>&2
+    echo "    the input file should be fastq files" 1>&2
+    echo "" 1>&2
+    echo "Output:" 1>&2
+    echo "    the converted fasta output to stdout (1>)" 1>&2
+}
+
+
+####################
+
+# parameter default value
+
+# getopts
+while getopts "hf:" opt; do
+  case ${opt} in
+    h)
+      printhelp; exit 0
+      ;;
+    f)
+      of=${OPTARG}
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG"
+      printusage; exit 1
+      ;;
+  esac
+done
+
+# check the required parameters
+if [ -z "${of}" ]; then
+    printusage
+    exit 1
+fi
+
+####################
+
+file=${of}
+
+awk -v PATTERN=${pattern} -v WITH=${ov} \
+    'FNR % 4 == 1 {
+        gsub("@", ">", $0); print $0;
+    }
+    FNR % 4 == 2 {
+        print $0;
+    }' ${file}

@@ -1,0 +1,104 @@
+#! /usr/bin/bash
+####################
+# grep_fq
+#     Description:
+#         Used to get the reads with or without pattern from single-end fastq files.
+#         Result fq file will be outputted to stdout,
+#     Usage:
+#         grep_fq [-h] [-v] -p PATTERN -1 1.fq -2 2.fq
+#     Parameters:
+#         h: print this help
+#         v: if set, output reads without pattern to stdout,
+#            else output reads with pattern to stdout
+#         f: the fastq file of the single-end fastq files
+#     Input:
+#         the input file should be two paired-end fastq files
+#     Output:
+#         the reads in fastq file satisfied pattern will be output to /dev/stdout (1>)
+#         the reads in fastq file not satisfied pattern will be output to /dev/stderr (2>)
+#         if the -v is setted, the reads satisfied pattern will be output to /dev/err (2>), and the reads not satisfied pattern will be output to /dev/stdout (1>)
+####################
+
+
+function printusage {
+    echo "Usage: $0 [-h] [-v] -p PATTERN -1 1.fq -2 2.fq" 1>&2
+}
+
+function printhelp {
+    printusage
+    echo "" 1>&2
+    echo "Parameters:" 1>&2
+    echo "    h: print this help" 1>&2
+    echo "    v: if set, output reads without pattern, else output reads with pattern" 1>&2
+    echo "    f: the fastq file of the single-end fastq files" 1>&2
+    echo "" 1>&2
+    echo "Input:" 1>&2
+    echo "    the input file should be two paired-end fastq files" 1>&2
+    echo "" 1>&2
+    echo "Output:" 1>&2
+    echo "    the reads in fastq file satisfied pattern will be output to /dev/stdout (1>)" 1>&2
+    echo "    the reads in fastq file not satisfied pattern will be output to /dev/stderr (2>)" 1>&2
+    echo "    if the -v is setted, the reads satisfied pattern will be output to /dev/err (2>)," 1>&2
+    echo "    and the reads not satisfied pattern will be output to /dev/stdout (1>)" 1>&2
+}
+
+####################
+
+# parameter default value
+ov=1
+
+# getopts
+while getopts "hvp:f:" opt; do
+  case ${opt} in
+    h)
+      printhelp; exit 0
+      ;;
+    v)
+      ov=0
+      ;;
+    p)
+      op=${OPTARG}
+      ;;
+    f)
+      of=${OPTARG}
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG"
+      printusage; exit 1
+      ;;
+  esac
+done
+
+# check the required parameters
+if [ -z "${op}" ] || [ -z "${of}" ]; then
+    printusage
+    exit 1
+fi
+
+####################
+
+pattern=${op}
+file=${of}
+
+awk -v PATTERN=${pattern} -v WITH=${ov} \
+    'FNR % 4 == 1 {
+        a = $0;
+    }
+    FNR % 4 == 2 {
+        b = $0;
+        if (b ~ PATTERN) {
+            havepattern = 1;
+        }
+    }
+    FNR % 4 == 3 {
+        c = $0;
+    }
+    FNR % 4 == 0 {
+        d = $0;
+        if (havepattern == WITH) {
+            print a "\n" b "\n" c "\n" d;
+        } else {
+            print a "\n" b "\n" c "\n" d > "/dev/stderr";
+        }
+        havepattern = 0
+    }' ${file}
