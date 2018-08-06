@@ -1,0 +1,114 @@
+#! /usr/bin/bash
+####################
+# grep_fq2_id
+#     Description:
+#         Used to get the reads with or without id from paired-end fastq files.
+#         First fq file will be outputted to stdout,
+#         Second fq file will be outputted to stderr.
+#     Usage:
+#         grep_fq_id [-h] [-v] -i id.txt -1 1.fq -2 2.fq
+#     Parameters:
+#         h: print this help
+#         v: if set, output reads without pattern, else output reads with pattern
+#         i: input txt file with id in each line
+#         1: the first fastq file of the paired-end fastq files
+#         2: the second fastq file of the pair-end fastq files
+#     Input:
+#         the input file should be two paired-end fastq files
+#     Output:
+#         the reads in first fastq file satisfied pattern will be output to /dev/stdout (1>)
+#         the reads in second fastq file satisfied pattern will be output to /dev/stderr (2>)
+####################
+
+
+function printusage {
+    echo "Usage: $0 [-h] [-v] -i id.txt -1 1.fq -2 2.fq" 1>&2
+}
+
+function printhelp {
+    printusage
+    echo "" 1>&2
+    echo "Parameters:" 1>&2
+    echo "    h: print this help" 1>&2
+    echo "    v: if set, output reads with id, else output reads with pattern" 1>&2
+    echo "    i: input txt file with id in each line" 1>&2
+    echo "    1: the first fastq file of the paired-end fastq files" 1>&2
+    echo "    2: the second fastq file of the pair-end fastq files" 1>&2
+    echo "" 1>&2
+    echo "Input:" 1>&2
+    echo "    the input file should be two paired-end fastq files" 1>&2
+    echo "" 1>&2
+    echo "Output:" 1>&2
+    echo "    the reads in first fastq file satisfied pattern will be output to /dev/stdout (1>)" 1>&2
+    echo "    the reads in second fastq file satisfied pattern will be output to /dev/stderr (2>)" 1>&2
+}
+
+
+####################
+
+# parameter default value
+ov=1
+
+# getopts
+while getopts "hvp:1:2:" opt; do
+  case ${opt} in
+    h)
+      printhelp; exit 0
+      ;;
+    v)
+      ov=0
+      ;;
+    i)
+      oi=${OPTARG}
+      ;;
+    1)
+      o1=${OPTARG}
+      ;;
+    2)
+      o2=${OPTARG}
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG"
+      printusage; exit 1
+      ;;
+  esac
+done
+
+# check the required parameters
+if [ -z "${oi}" ] || [ -z "${o1}" ] || [ -z "${o2}" ]; then
+    printusage
+    exit 1
+fi
+
+####################
+
+unset ids
+
+for x in $(cat ${oi}); do
+    tmpids="${x}|${tmpids}"
+done
+
+ids="(${thetmp%|})"
+
+file1=$o1
+file2=$o2
+paste -d '\t' ${file1} ${file2} | \
+awk -v IDS=${ids} -v WITH=${ov} \
+    'BEGIN { FS="\t"; havepattern = 0; }
+     FNR % 4 == 1 {
+         a1 = $1; a2 = $2;
+         if ($0 ~ IDS) { havepattern = 1; }
+     }
+     FNR % 4 == 2 { b1 = $1; b2 = $2; }
+     FNR % 4 == 3 { c1 = $1; c2 = $2; }
+     FNR % 4 == 0 {
+         d1 = $1;
+         d2 = $2;
+         if (havepattern == WITH) {
+             print a1 "\n" b1 "\n" c1 "\n" d1 > "/dev/stdout";
+             print a2 "\n" b2 "\n" c2 "\n" d2 > "/dev/stderr";
+         }
+         havepattern = 0
+     }' -
+
+####################

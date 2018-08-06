@@ -10,6 +10,7 @@
 #         h: print this help
 #         v: if set, output reads without pattern to stdout,
 #            else output reads with pattern to stdout
+#         p: sequence regular expression pattern
 #         f: the fastq file of the single-end fastq files
 #     Input:
 #         the input file should be two paired-end fastq files
@@ -30,6 +31,7 @@ function printhelp {
     echo "Parameters:" 1>&2
     echo "    h: print this help" 1>&2
     echo "    v: if set, output reads without pattern, else output reads with pattern" 1>&2
+    echo "    p: sequence regular expression pattern" 1>2&
     echo "    f: the fastq file of the single-end fastq files" 1>&2
     echo "" 1>&2
     echo "Input:" 1>&2

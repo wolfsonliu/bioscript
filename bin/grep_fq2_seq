@@ -1,6 +1,6 @@
 #! /usr/bin/bash
 ####################
-# fq2_grep
+# grep_fq2_seq
 #     Description:
 #         Used to get the reads with or without pattern from paired-end fastq files.
 #         First fq file will be outputted to stdout,
@@ -10,6 +10,7 @@
 #     Parameters:
 #         h: print this help
 #         v: if set, output reads without pattern, else output reads with pattern
+#         p: sequence regular expression pattern
 #         1: the first fastq file of the paired-end fastq files
 #         2: the second fastq file of the pair-end fastq files
 #     Input:
@@ -30,6 +31,7 @@ function printhelp {
     echo "Parameters:" 1>&2
     echo "    h: print this help" 1>&2
     echo "    v: if set, output reads without pattern, else output reads with pattern" 1>&2
+    echo "    p: sequence regular expression pattern" 1>2&
     echo "    1: the first fastq file of the paired-end fastq files" 1>&2
     echo "    2: the second fastq file of the pair-end fastq files" 1>&2
     echo "" 1>&2
