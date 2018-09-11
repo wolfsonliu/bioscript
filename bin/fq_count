@@ -1,22 +1,18 @@
 #! /usr/bin/bash
 ####################
-# fq2_count
+# fq_count
 #     Description:
-#         Used to get the reads with or without pattern from single-end fastq files.
-#         Result fq file will be outputted to stdout,
+#         Count the input fastq file records
+#         Result will be outputted to stdout.
 #     Usage:
-#         fq2_grep [-h] [-v] -p PATTERN -1 1.fq -2 2.fq
+#         fq_count [-h] -f input.fq
 #     Parameters:
 #         h: print this help
-#         v: if set, output reads without pattern to stdout,
-#            else output reads with pattern to stdout
 #         f: the fastq file of the single-end fastq files
 #     Input:
-#         the input file should be two paired-end fastq files
+#         the input file should be fastq files
 #     Output:
-#         the reads in fastq file satisfied pattern will be output to /dev/stdout (1>)
-#         the reads in fastq file not satisfied pattern will be output to /dev/stderr (2>)
-#         if the -v is setted, the reads satisfied pattern will be output to /dev/err (2>), and the reads not satisfied pattern will be output to /dev/stdout (1>)
+#         record counts will be output to standard output /dev/stdout.
 ####################
 
 function printusage {

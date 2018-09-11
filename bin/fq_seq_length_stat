@@ -1,0 +1,74 @@
+#! /usr/bin/bash
+####################
+# fq_seq_length_stat
+#     Description:
+#         Used to calculate read length statistics in one fastq file
+#     Usage:
+#         fq_seq_length_stat [-h] -f input.fq
+#     Parameters:
+#         h: print this help
+#         f: the fastq file of the single-end fastq files
+#     Input:
+#         the input file should be fastq files
+#     Output:
+#         the statistic result will be output to standard output /dev/stdout
+#         [min, 1st quartile, median, 3rd quartile, max]
+####################
+
+function printusage {
+    echo "Usage: $0 [-h] -f input.fq" 1>&2
+}
+
+function printhelp {
+    printusage
+    echo "" 1>&2
+    echo "Parameters:" 1>&2
+    echo "    h: print this help" 1>&2
+    echo "    f: the fastq file to statistic." 1>&2
+    echo "" 1>&2
+    echo "Input:" 1>&2
+    echo "    the input file should be fastq files." 1>&2
+    echo "" 1>&2
+    echo "Output:" 1>&2
+    echo "    the reads statistics will be output to /dev/stdout (1>)" 1>&2
+}
+
+while getopts "hf:" opt; do
+  case ${opt} in
+    h)
+      printhelp; exit 0
+      ;;
+    f)
+      fq=${OPTARG}
+      ;;
+    \?)
+      echo "Invalid option: -"${OPTARG}
+      printusage; exit 1
+      ;;
+  esac
+done
+
+# check the required parameters
+if [ -z "${fq}" ]; then
+    printusage
+    exit 1
+fi
+
+file=${fq}
+
+awk 'BEGIN {}
+    FNR %4 == 2 {
+        readlength[FNR] = length($0);
+        }
+    END {
+        asort(readlength);
+        records = length(readlength);
+        q1 = readlength[int(records/4)];
+        q3 = readlength[int(records/4*3)];
+        median = readlength[int(records/2 + 1)];
+        if (records % 2 == 0) {
+            median = (readlength[int(records/2)] + readlength[int(records/2 + 1)]) / 2;
+        }
+        print readlength[1] FS q1 FS median FS q3 FS readlength[records];
+        }' ${file}
+####################
