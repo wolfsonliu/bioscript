@@ -1,0 +1,70 @@
+#! /usr/bin/bash
+####################
+# fq_seq_qc_mean
+#     Description:
+#         Used to calculate read mean GC content in one fastq file
+#     Usage:
+#         fq_seq_stat [-h] -f input.fq
+#     Parameters:
+#         h: print this help
+#         f: the fastq file of the single-end fastq files
+#     Input:
+#         the input file should be fastq files
+#     Output:
+#         the reads' mean GC content will be output to standard output /dev/stdout.
+####################
+
+function printusage {
+    echo "Usage: $0 [-h] -f input.fq" 1>&2
+}
+
+function printhelp {
+    printusage
+    echo "" 1>&2
+    echo "Parameters:" 1>&2
+    echo "    h: print this help" 1>&2
+    echo "    f: the fastq file to be calculate read mean length." 1>&2
+    echo "" 1>&2
+    echo "Input:" 1>&2
+    echo "    the input file should be fastq files." 1>&2
+    echo "" 1>&2
+    echo "Output:" 1>&2
+    echo "    the reads' mean GC content will be output to /dev/stdout (1>)" 1>&2
+}
+
+while getopts "hf:" opt; do
+  case ${opt} in
+    h)
+      printhelp; exit 0
+      ;;
+    f)
+      fq=${OPTARG}
+      ;;
+    \?)
+      echo "Invalid option: -"${OPTARG}
+      printusage; exit 1
+      ;;
+  esac
+done
+
+# check the required parameters
+if [ -z "${fq}" ]; then
+    printusage
+    exit 1
+fi
+
+file=${fq}
+
+awk 'BEGIN {
+        gc = 0;
+        records = 0;
+        }
+    FNR %4 == 2 {
+        records += 1;
+        seq = $0;
+        gc += gsub(/[GCgc]/, "", seq) / length($0);
+        }
+    END {
+        print gc/records;
+        }' ${file}
+##############################
