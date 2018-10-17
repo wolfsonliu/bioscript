@@ -1,0 +1,63 @@
+#! /usr/bin/env python3
+import argparse
+
+def amino_acid(x, information):
+    infocol = ['name', 'triletter', 'uniletter', 'class', 'polarity', 'charge', 'codon']
+    assert information in infocol, 'Wrong information: {0}. options should be in [{1}]'.format(
+        information,
+        ', '.join(infocol)
+    )
+    info = [
+        ['Alanine', 'Ala', 'A', 'aliphatic', 'nonpolar', 'neutral', ['GCU', 'GCC', 'GCA', 'GCG']],
+        ['Arginine', 'Arg', 'R', 'basic', 'basic polar', 'positive', ['CGU', 'CGC', 'CGA', 'CGG', 'AGA', 'AGG']],
+        ['Asparagine', 'Asn', 'N', 'amide', 'polar', 'neutral', ['AAU', 'AAC']],
+        ['Aspartic acid', 'Asp', 'D', 'acid', 'acidic polar', 'negative', ['GAU', 'GAC']],
+        ['Cysteine', 'Cys', 'C', 'sulfur-containing', 'nonpolar', 'neutral', ['UGU', 'UGC']],
+        ['Glutamic acid', 'Glu', 'E', 'acid', 'acidic polar', 'negative', ['GAA', 'GAG']],
+        ['Glutamine', 'Gln', 'Q', 'amide', 'polar', 'neutral', ['CAA', 'CAG']],
+        ['Glycine', 'Gly', 'G', 'aliphatic', 'nonpolar', 'neutral', ['GGU', 'GGC', 'GGA', 'GGG']],
+        ['Histidine', 'His', 'H', 'basic aromatic', 'basic polar', 'positive(10%) neutral(90%)', ['CAU', 'CAC']],
+        ['Isoleucine', 'Ile', 'I', 'aliphatic', 'nonpolar', 'neutral', ['AUU', 'AUC', 'AUA']],
+        ['Leucine', 'Leu', 'L', 'aliphatic', 'nonpolar', 'neutral', ['UUA', 'UUG', 'CUU', 'CUC', 'CUA', 'CUG']],
+        ['Lysine', 'Lys', 'K', 'basic', 'basic polar', 'positive', ['AAA', 'AAG']],
+        ['Methionine', 'Met', 'M', 'sulfur-containing', 'nonpolar', 'neutral', ['AUG']],
+        ['Phenylalanine', 'Phe', 'F', 'aromatic', 'nonpolar', 'neutral', ['UUU', 'UUC']],
+        ['Proline', 'Pro', 'P', 'cyclic', 'nonpolar', 'neutral', ['CCU', 'CCC', 'CCA', 'CCG']],
+        ['Serine', 'Ser', 'S', 'hydroxyl-containing', 'polar', 'neutral', ['UCU', 'UCC', 'UCA', 'UCG', 'AGU', 'AGC']],
+        ['Threonine', 'Thr', 'T', 'hydroxyl-containing', 'polar', 'neutral', ['ACU', 'ACC', 'ACA', 'ACG']],
+        ['Tryptophan', 'Trp', 'W', 'aromatic', 'nonpolar', 'neutral', ['UGG']],
+        ['Tyrosine', 'Tyr', 'Y', 'aromatic', 'polar', 'neutral', ['UAU', 'UAC']],
+        ['Valine', 'Val', 'V', 'aliphatic', 'nonpolar', 'neutral', ['GUU', 'GUC', 'GUA', 'GUG']],
+        ['STOP', 'STP', '*', '', '', '', ['UAA', 'UGA', 'UAG']]
+    ]
+    infodict = dict(
+        zip(infocol, [ [x[i] for x in info ] for i in range(len(infocol))])
+    )
+    for i in range(len(infocol)):
+        if i == 6:
+            for codons in infodict['codon']:
+                if x in codons:
+                    return infodict[information][infodict['codon'].index(codons)]
+        else:
+            if x in infodict[infocol[i]]:
+                return infodict[information][infodict[infocol[i]].index(x)]
+    raise ValueError('Wrong input x: {}'.format(x))
+
+
+####################
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        prog='amino_acid',
+        description='Get amino acid information by input query information.\n Posible information: [name, triletter, uniletter, class, polarity, charge, codon].'
+    )
+    parser.add_argument(
+        '-x', '--query', help='query information'
+    )
+    parser.add_argument(
+        '-i', '--information', help='output information'
+    )
+    args = vars(parser.parse_args())
+    print(amino_acid(args['query'], args['information']))
+
+################################################################################
