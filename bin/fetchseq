@@ -1,0 +1,64 @@
+#! /usr/bin/env python3
+import os
+import sys
+import argparse
+import pandas as pd
+from Bio import SeqIO
+
+parser = argparse.ArgumentParser(
+    description = 'fetch sequences from reference genome'
+)
+parser.add_argument(
+    '-r', '--reference', required=True, help='reference genome fasta file'
+)
+parser.add_argument(
+    '-i', '--input',
+    help='tab separated file, no head, two columns: <chromosome> <position>.'
+)
+parser.add_argument(
+    '-o', '--output', help='tab separated file'
+)
+parser.add_argument(
+    '--n-before', default=75, type=int,
+    help='number of nucleotides to output before the position.'
+)
+parser.add_argument(
+    '--n-after', default=75, type=int,
+    help='number of nucleotides to output after the position.'
+)
+####################
+
+args = vars(parser.parse_args())
+
+__stdin__ = sys.stdin
+if args['input'] is not None:
+    sys.stdin = open(args['input'], 'r')
+
+__stdout__ = sys.stdout
+if args['output'] is not None:
+    sys.stdout = open(args['output'], 'w')
+
+inputdata = pd.read_table(sys.stdin, header=None)
+inputdata.columns = ['chr', 'pos']
+inputdata['start'] = inputdata['pos'].astype(int) - args['n_before']
+inputdata['end'] = inputdata['pos'].astype(int) + args['n_after']
+outputdata = list()
+
+chromosome = ['chr' + str(i) for i in range(1, 23)] + ['chrX', 'chrY']
+aimchr = list(inputdata['chr'].unique())
+for record in SeqIO.parse(args['reference'], "fasta"):
+    if record.id in aimchr:
+        data = inputdata.loc[inputdata['chr'] == record.id,].copy()
+        data['seq'] = inputdata.loc[inputdata['chr'] == record.id,].apply(
+            lambda x: str(record.seq[int(x['start'])-1:int(x['end'])]),
+            axis=1
+        )
+        outputdata.append(data)
+
+outputdata = pd.concat(outputdata, axis=0)
+
+outputdata.sort_values(['chr', 'pos']).to_csv(sys.stdout, index=False, sep='\t')
+
+sys.stdin = __stdin__
+sys.stdout = __stdout__
+####################

@@ -1,2 +1,2 @@
 # bioawklet
-small awk code used in bioinformatics
+small code used in bioinformatics
