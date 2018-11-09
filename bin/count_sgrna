@@ -71,8 +71,8 @@ function fq2_to_seqpair2 {
 }
 
 
-function seqpair_guide_barcode {
-    awk 'BEGIN {
+function seqpair_guide {
+    awk -F '\t' 'BEGIN {
             GPATTERN="ACCG([ATGC]{18,21})GTTT";
         }
         $0 ~ HPATTERN {
@@ -83,12 +83,12 @@ function seqpair_guide_barcode {
 }
 
 function count_guide {
-    awk 'BEGIN {
-        FS="\t";
-    }
-    {
-        lcount[$1] += 1;
-        lcount[$2] += 1;
+    awk -F '\t' '{
+        if (length($1) > 0) {
+            lcount[$1] += 1;
+        } else if (length($2) > 0) {
+            lcount[$2] += 1;
+        }
     }
     END {
         for (x in lcount) {
@@ -99,7 +99,6 @@ function count_guide {
 
 ####################
 
-fq2_to_seqpair2 ${fqf} ${fqr} | seqpair_guide_barcode - | count_guide | sort -V
-
+fq2_to_seqpair2 ${fqf} ${fqr} | seqpair_guide - | count_guide | sort -V
 
 ####################
