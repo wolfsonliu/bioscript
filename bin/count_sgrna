@@ -5,7 +5,7 @@
 #         Count the sgrna from paired-end fastq files
 ####################
 function printusage {
-    echo "Usage: $0 [-h] -f input1.fq -r input2.fq" 1>&2
+    echo "Usage: $0 [-h] -p pattern -f input1.fq -r input2.fq" 1>&2
 }
 
 function printhelp {
@@ -13,6 +13,7 @@ function printhelp {
     echo "" 1>&2
     echo "Parameters:" 1>&2
     echo "    h: print this help" 1>&2
+    echo "    p: the sgRNA pattern to be used, for example: ACCG([ATGC]{18,21})GTTT" 1>&2
     echo "    f: the forward fastq file to be count reads." 1>&2
     echo "    r: the reverse fastq file to be count reads." 1>&2
     echo "" 1>&2
@@ -25,10 +26,13 @@ function printhelp {
 
 ov=1
 
-while getopts "hf:r:" opt; do
+while getopts "hp:f:r:" opt; do
   case ${opt} in
     h)
       printhelp; exit 0
+      ;;
+    p)
+      GPATTERN=${OPTARG}
       ;;
     f)
       fqf=${OPTARG}
@@ -55,6 +59,10 @@ if [ -z "${fqr}" ]; then
     exit 1
 fi
 
+if [ -z "${GPATTERN}" ]; then
+    GPATTERN="ACCG([ATGC]{18,21})GTTT"
+fi
+
 ####################
 
 function reverse_complement {
@@ -72,8 +80,8 @@ function fq2_to_seqpair2 {
 
 
 function seqpair_guide {
-    awk -F '\t' 'BEGIN {
-            GPATTERN="ACCG([ATGC]{18,21})GTTT";
+    awk -v GPAT=$GPATTERN -F '\t' 'BEGIN {
+            GPATTERN=GPAT;
         }
         $0 ~ HPATTERN {
             match($1, GPATTERN, a);

@@ -5,7 +5,7 @@
 #         Count the sgrna with barcode from paired-end fastq files
 ####################
 function printusage {
-    echo "Usage: $0 [-h] -f input1.fq -r input2.fq" 1>&2
+    echo "Usage: $0 [-h] -a apattern -p gpattern -b bpattern -f input1.fq -r input2.fq" 1>&2
 }
 
 function printhelp {
@@ -13,6 +13,9 @@ function printhelp {
     echo "" 1>&2
     echo "Parameters:" 1>&2
     echo "    h: print this help" 1>&2
+    echo "    a: the sgRNA with barcode pattern to be used, for example: ACCG([ATGC]{20})GTTT[ATGC]{1,35}TGGA([ATCG]{4,6})AACA" 1>&2
+    echo "    p: the sgRNA pattern to be used, for example: ACCG([ATGC]{18,21})GTTT" 1>&2
+    echo "    b: the barcode pattern to be used, for example: TGGA([ATCG]{6})AACA" 1>&2
     echo "    f: the forward fastq file to be count reads." 1>&2
     echo "    r: the reverse fastq file to be count reads." 1>&2
     echo "" 1>&2
@@ -25,10 +28,19 @@ function printhelp {
 
 ov=1
 
-while getopts "hf:r:" opt; do
+while getopts "ha:p:b:f:r:" opt; do
   case ${opt} in
     h)
       printhelp; exit 0
+      ;;
+    a)
+      APATTERN=${OPTARG}
+      ;;
+    p)
+      GPATTERN=${OPTARG}
+      ;;
+    b)
+      BPATTERN=${OPTARG}
       ;;
     f)
       fqf=${OPTARG}
@@ -55,6 +67,15 @@ if [ -z "${fqr}" ]; then
     exit 1
 fi
 
+if [ -z "${APATTERN}" ]; then
+    APATTERN="ACCG([ATGC]{20})GTTT[ATGC]{1,35}TGGA([ATCG]{4,6})AACA"
+fi
+if [ -z "${GPATTERN}" ]; then
+    GPATTERN="ACCG([ATGC]{18,21})GTTT"
+fi
+if [ -z "${BPATTERN}" ]; then
+    BPATTERN="TGGA([ATCG]{6})AACA"
+fi
 ####################
 
 function reverse_complement {
@@ -72,13 +93,13 @@ function fq2_to_seqpair2 {
 
 
 function seqpair_guide_barcode {
-    awk 'BEGIN {
-            HPATTERN="ACCG([ATGC]{20})GTTT[ATGC]{1,35}TGGA([ATCG]{4,6})AACA";
-            GPATTERN="ACCG([ATGC]{20})GTTT";
-            BPATTERN="TGGA([ATCG]{6})AACA";
+    awk -v APAT=$APATTERN -v GPAT=$GPATTERN -v BPAT=$BPATTERN 'BEGIN {
+            APATTERN=APAT;
+            GPATTERN=GPAT;
+            BPATTERN=BPAT;
         }
-        $0 ~ HPATTERN {
-            match($1, HPATTERN, a);
+        $0 ~ APATTERN {
+            match($1, APATTERN, a);
             match($2, BPATTERN, b);
             print substr($1, a[1, "start"], a[1, "length"]) FS substr($1, a[2, "start"], a[2, "length"]) FS substr($2, b[1, "start"], b[1, "length"]);
         }' $@
