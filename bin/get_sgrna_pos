@@ -1,0 +1,157 @@
+#! /usr/bin/env python3
+####################
+# First A site  |  sgRNA length
+#       19      |      21
+#       18      |      20
+#       17      |      19
+#       16      |      19
+#       15      |      19
+#       14      |      20
+#       13      |      20
+####################
+
+import sys
+import re
+import numpy as np
+import pandas as pd
+from Bio import SeqIO
+import argparse
+
+####################
+
+parser = argparse.ArgumentParser(prog='get_sgrna_pos')
+
+parser.add_argument(
+    '-r', '--reference', required=True,
+    help='reference genome fasta file.'
+)
+
+parser.add_argument(
+    '-i', '--input', required=True,
+    help="""input tab separated data file with columns: [
+    seqname, source, feature, start, end, score, strand,
+    frame, attribute, gene_id, gene_name, p_id, transcript_id,
+    tss_id, cds_no, cds_len, cds_cumlen, cds_ntstart, uniprot_1,
+    uniprot_2, aa, aa_prot_pos, aa_cds_pos, aa_exon_pos,
+    aa_genome_pos_start, aa_genome_pos_end, aa_genome_seq, keep]."""
+)
+
+parser.add_argument(
+    '-a', '--aa-sgrna', required=True, nargs='*', type=int,
+    help="""First A site on the sgRNA, counting from PAM.
+    For instance: -a 14 15 16"""
+)
+
+parser.add_argument(
+    '-l', '--spacer-length', required=True, type=int,
+    help="""sgRNA spacer length"""
+)
+
+parser.add_argument(
+    '-o', '--output', help='output file for sgrna position, add columns  [Gene Name, Amino Acid (one character), Protein Position].'
+)
+
+args = vars(parser.parse_args())
+
+####################
+
+def complement(seq):
+    # calculate the complement sequence string
+    # input a string
+    # return a string
+    iupac = {
+        "A": "T", "G": "C", "C": "G", "T": "A", "Y": "R", "R": "Y",
+        "W": "W", "S": "S", "K": "M", "M": "K", "D": "H", "V": "B",
+        "H": "D", "B": "V", "N": "N", "X": "X", "-": "-",
+        "a": "t", "g": "c", "c": "g", "t": "a", "y": "r", "r": "y",
+        "w": "w", "s": "s", "k": "m", "m": "k", "d": "h", "v": "b",
+        "h": "d", "b": "v", "n": "n", "x": "x", "-": "-",
+    }
+    return ''.join(iupac[i] for i in seq)
+
+
+def reverse_complement(seq):
+    # calculate the reverse complement sequence string
+    # input a string
+    # return a string
+    return complement(seq)[::-1]
+
+def gc_content(seq):
+    # calculate the sequence GC content
+    # input a string
+    # return a number
+    return len([i for i in seq if i in ['C','G','S']])/len(seq)
+
+####################
+__console__ = sys.stdout
+if 'output' in args.keys():
+    sys.stdout = open(args['output'], 'w')
+
+colnames = [
+    'seqname', 'source', 'feature', 'start', 'end', 'score', 'strand',
+    'frame', 'attribute', 'gene_id', 'gene_name', 'p_id', 'transcript_id',
+    'tss_id', 'cds_no', 'cds_len', 'cds_cumlen', 'cds_ntstart', 'uniprot_1',
+    'uniprot_2', 'aa', 'aa_prot_pos', 'aa_cds_pos', 'aa_exon_pos',
+    'aa_genome_pos_start', 'aa_genome_pos_end', 'aa_genome_seq', 'keep',
+    'sgrna_start', 'sgrna_end', 'sgrna', 'pam', 'guide', 'gc'
+]
+
+data = pd.read_table(args['input'], header=0)
+
+result = list()
+
+for a in args['aa_sgrna']:
+    result.append(
+        data.loc[data['strand'] == '+'].assign(
+            sgrna_start=lambda x: x.aa_genome_pos_start + a - args['spacer_length'],
+            sgrna_end=lambda x: x.aa_genome_pos_start + a - 1,
+        )
+    )
+    result.append(
+        data.loc[data['strand'] == '-'].assign(
+            sgrna_start=lambda x: x.aa_genome_pos_end - a + 1,
+            sgrna_end=lambda x: x.aa_genome_pos_end - a + args['spacer_length'],
+        )
+    )
+
+del data
+output = pd.concat(result, axis=0).reset_index(drop=True)
+
+vseqname = [''.join(['chr', str(i)]) for i in list(range(1, 23)) + ['X', 'Y']]
+fa = dict()
+for record in SeqIO.parse(args["reference"], "fasta"):
+    if record.id in vseqname:
+        fa[record.id] = record
+
+output.loc[:,'sgrna'] = output.apply(
+    lambda x: str(fa[x['seqname']].seq[x['sgrna_start'] - 1: x['sgrna_end']]),
+    axis=1
+)
+output.loc[:,'pam'] = output.apply(
+    lambda x: str(fa[x['seqname']].seq[x['sgrna_end']: x['sgrna_end'] + 3])
+    if x['strand'] == '+'
+    else str(fa[x['seqname']].seq[x['sgrna_start']-1-3: x['sgrna_start']-1]),
+    axis=1
+)
+output.loc[:,'guide'] = output.apply(
+    lambda x: x['sgrna']
+    if x['strand'] == '+' else reverse_complement(x['sgrna']) ,
+    axis=1
+)
+
+output.loc[:,'gc'] = output.apply(lambda x: gc_content(x['sgrna']), axis=1)
+
+output.loc[:,'keep'] = np.logical_and(
+    output['keep'],
+    np.logical_or(
+        np.logical_and(output['strand'] == '+', output['pam'].str[1:] == 'GG' ),
+        np.logical_and(output['strand'] == '-', output['pam'].str[:2] == 'CC' )
+    )
+)
+
+output[colnames].loc[output['keep']].to_csv(
+    sys.stdout, index=False, quoting=0, sep='\t'
+)
+
+sys.stdout = __console__
+################################################################################
