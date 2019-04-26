@@ -1,4 +1,7 @@
-#! /usr/bin/bash
+#! /bin/bash
+set -u
+set -e
+set -o pipefail
 ####################
 # grep_fq2_seq
 #     Description:
