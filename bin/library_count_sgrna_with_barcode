@@ -95,7 +95,6 @@ function fq2_to_seqpair2 {
     cat $1 | reverse_complement | paste $2 - | awk 'FNR % 4 == 2 {print $0}'
 }
 
-
 function seqpair_guide_barcode {
     awk -v APAT=$APATTERN -v GPAT=$GPATTERN -v BPAT=$BPATTERN 'BEGIN {
             FS="\t";
